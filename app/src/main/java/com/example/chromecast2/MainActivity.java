@@ -1,9 +1,11 @@
 package com.example.chromecast2;
+
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
-import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.mediarouter.app.MediaRouteButton;
 
 import com.brightcove.player.edge.Catalog;
@@ -11,9 +13,11 @@ import com.brightcove.player.edge.VideoListener;
 import com.brightcove.player.event.EventEmitter;
 import com.brightcove.player.model.Video;
 import com.brightcove.player.view.BrightcovePlayer;
-import com.brightcove.player.view.BrightcoveVideoView;
 import com.google.android.gms.cast.framework.CastButtonFactory;
 import com.google.android.gms.cast.framework.CastContext;
+import com.google.android.gms.cast.framework.Session;
+import com.google.android.gms.cast.framework.SessionManager;
+import com.google.android.gms.cast.framework.SessionManagerListener;
 
 /**
  * This app illustrates how to use the ExoPlayer with the Brightcove
@@ -32,17 +36,64 @@ public class MainActivity extends BrightcovePlayer {
         // management.  Establish the video object and use it's event emitter to get important
         // notifications and to control logging.
         setContentView(R.layout.activity_main);
-        brightcoveVideoView = (BrightcoveVideoView) findViewById(R.id.brightcove_video_view);
+        brightcoveVideoView =  findViewById(R.id.brightcove_video_view);
         super.onCreate(savedInstanceState);
         // Get the event emitter from the SDK and create a catalog request to fetch a video from the
         // Brightcove Edge service, given a video id, an account id and a policy key.
         EventEmitter eventEmitter = brightcoveVideoView.getEventEmitter();
         String account = getString(R.string.sdk_demo_account);
-        MediaRouteButton mMediaRouteButton = (MediaRouteButton)findViewById(R.id.media_route_button);
+        MediaRouteButton mMediaRouteButton =  findViewById(R.id.media_route_button);
 
         CastButtonFactory.setUpMediaRouteButton(getApplicationContext(), mMediaRouteButton);
 
-        CastContext mCastContext = CastContext.getSharedInstance(this);
+        CastContext mCastContext = CastContext.getSharedInstance(this, ContextCompat.getMainExecutor(this)).getResult();
+        SessionManager mSessionManager = mCastContext.getSessionManager();
+        mSessionManager.addSessionManagerListener(new SessionManagerListener<>() {
+            @Override
+            public void onSessionEnded(@NonNull Session session, int i) {
+                Log.d("CastSession", "onSessionEnded: " + session.getSessionId() + ", reason: " + i);
+            }
+
+            @Override
+            public void onSessionEnding(@NonNull Session session) {
+                Log.d("CastSession", "onSessionEnding: " + session.getSessionId());
+            }
+
+            @Override
+            public void onSessionResumeFailed(@NonNull Session session, int i) {
+                Log.d("CastSession", "onSessionResumeFailed: " + session.getSessionId() + ", errorCode: " + i);
+            }
+
+            @Override
+            public void onSessionResumed(@NonNull Session session, boolean b) {
+                Log.d("CastSession", "onSessionResumed: " + session.getSessionId() + ", wasSuspended: " + b);
+            }
+
+            @Override
+            public void onSessionResuming(@NonNull Session session, @NonNull String s) {
+                Log.d("CastSession", "onSessionResuming: sessionId=" + session.getSessionId() + ", routeId=" + s);
+            }
+
+            @Override
+            public void onSessionStartFailed(@NonNull Session session, int i) {
+                Log.d("CastSession", "onSessionStartFailed: " + session.getSessionId() + ", errorCode: " + i);
+            }
+
+            @Override
+            public void onSessionStarted(@NonNull Session session, @NonNull String s) {
+                Log.d("CastSession", "onSessionStarted: sessionId=" + session.getSessionId() + ", routeId=" + s);
+            }
+
+            @Override
+            public void onSessionStarting(@NonNull Session session) {
+                Log.d("CastSession", "onSessionStarting: " + session.getSessionId());
+            }
+
+            @Override
+            public void onSessionSuspended(@NonNull Session session, int i) {
+                Log.d("CastSession", "onSessionSuspended: " + session.getSessionId() + ", reason: " + i);
+            }
+        });
 
         Catalog catalog = new Catalog.Builder(eventEmitter, account)
                 .setBaseURL(Catalog.DEFAULT_EDGE_BASE_URL)
